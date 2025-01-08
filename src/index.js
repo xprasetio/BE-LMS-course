@@ -2,10 +2,14 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
+import authRoutes from "./routes/authRoutes.js";
 import globalRoutes from "./routes/globalRoutes.js";
+import { connectDB } from "./utils/database.js";
 const app = express();
 
 dotenv.config();
+
+connectDB();
 
 const port = 3000;
 
@@ -21,6 +25,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api", globalRoutes);
+app.use("/api", authRoutes);
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);

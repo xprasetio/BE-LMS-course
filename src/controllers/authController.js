@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
 import TransactionModel from "../models/transactionModel.js";
 import userModel from "../models/userModel.js";
+import transactionModel from "../models/transactionModel.js";
+import jwt from "jsonwebtoken";
 
 export const signUpAction = async (req, res) => {
   const midtransUrl = process.env.MIDTRANS_URL;
@@ -52,6 +54,61 @@ export const signUpAction = async (req, res) => {
       message: "Sign up success",
       data: {
         midtrans_payment_url: midtransResponse.redirect_url,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+export const SignInAction = async (req, res) => {
+  try { 
+    const body = req.body;
+    const existingUser = await userModel.findOne({ email: body.email });
+    const comparePassword = await bcrypt.compareSync(
+      body.password,
+      existingUser.password
+    );
+    if (comparePassword) {
+      return res.status(200).json({
+        message: "Sign in success",
+        data: existingUser,
+      });
+    } else {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+    const isValidUser = await transactionModel.findOne({
+      user: existingUser._id,
+      status: "success",
+    });
+    if (existingUser.role !=="student" && !isValidUser) {
+      return res.status(401).json({
+        message: "user no verified",
+      });
+    }
+    const token = jwt.sign(
+      {
+        data : {
+          id: existingUser._id.toString(),
+        }
+      },
+      process.env.SCRET_KEY_JWT,
+      {
+        expiresIn: "1d",
+      }
+    );
+    return res.status(200).json({
+      message: "Sign in success",
+      data: {
+        name: existingUser.name,
+        email: existingUser.email,
+        role: existingUser.role,
+        token,
       },
     });
   } catch (error) {
